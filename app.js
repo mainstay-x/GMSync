@@ -1,6 +1,11 @@
-/* ObraFlow Control — protótipo funcional sem backend */
+/* GMSync — protótipo funcional sem backend */
 const ANALYSIS_DATE = new Date("2026-07-23T12:00:00");
-const STORAGE_KEY = "obraflow-control-v1";
+const STORAGE_KEY = "gmsync-control-v1";
+// Dados e sessão gravados com o nome antigo do sistema passam para as chaves novas.
+for (const [store, from, to] of [[localStorage, "obraflow-control-v1", STORAGE_KEY], [localStorage, "obraflow-remember-login", "gmsync-remember-login"], [sessionStorage, "obraflow-authenticated", "gmsync-authenticated"]]) {
+  const old = store.getItem(from);
+  if (old !== null) { if (store.getItem(to) === null) store.setItem(to, old); store.removeItem(from); }
+}
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const number = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const dateFmt = new Intl.DateTimeFormat("pt-BR");
@@ -374,7 +379,7 @@ function presentation() {
     ["RELATÓRIO EXECUTIVO","Da operação à diretoria, sem retrabalho","Curva S, riscos, projeções e ações recomendadas reunidos em um relatório pronto para decisão.",[["1 clique","geração"],["PDF","pronto para reunião"],["Local","dados persistentes"]]]
   ];
   const s=slides[presentationStep];
-  document.querySelector("#presentation").innerHTML=`<div class="presentation-stage"><div class="presentation-top"><strong>ObraFlow Control</strong><span>${presentationStep+1} / ${slides.length}</span></div><div class="presentation-progress"><span style="width:${(presentationStep+1)/slides.length*100}%"></span></div><div class="slide"><div class="slide-inner"><span class="eyebrow">${s[0]}</span><h2>${s[1]}</h2><p>${s[2]}</p><div class="slide-stats">${s[3].map(x=>`<div class="slide-stat"><strong>${x[0]}</strong><span>${x[1]}</span></div>`).join("")}</div></div></div><div class="presentation-nav"><button class="secondary-btn" id="presExit">Sair da apresentação</button><div class="actions"><button class="secondary-btn" id="presPrev" ${presentationStep===0?"disabled":""}>Anterior</button><button class="primary-btn" id="presNext">${presentationStep===slides.length-1?"Concluir":"Próximo"}</button></div></div></div>`;
+  document.querySelector("#presentation").innerHTML=`<div class="presentation-stage"><div class="presentation-top"><strong>GMSync</strong><span>${presentationStep+1} / ${slides.length}</span></div><div class="presentation-progress"><span style="width:${(presentationStep+1)/slides.length*100}%"></span></div><div class="slide"><div class="slide-inner"><span class="eyebrow">${s[0]}</span><h2>${s[1]}</h2><p>${s[2]}</p><div class="slide-stats">${s[3].map(x=>`<div class="slide-stat"><strong>${x[0]}</strong><span>${x[1]}</span></div>`).join("")}</div></div></div><div class="presentation-nav"><button class="secondary-btn" id="presExit">Sair da apresentação</button><div class="actions"><button class="secondary-btn" id="presPrev" ${presentationStep===0?"disabled":""}>Anterior</button><button class="primary-btn" id="presNext">${presentationStep===slides.length-1?"Concluir":"Próximo"}</button></div></div></div>`;
   document.querySelector("#presExit").onclick=()=>document.querySelector("#presentation").hidden=true;
   document.querySelector("#presPrev").onclick=()=>{presentationStep=Math.max(0,presentationStep-1);presentation();};
   document.querySelector("#presNext").onclick=()=>{if(presentationStep===slides.length-1){document.querySelector("#presentation").hidden=true;presentationStep=0;}else{presentationStep++;presentation();}};
@@ -410,12 +415,12 @@ document.querySelector("#loginForm").onsubmit = async e => {
   try { ok = GMData.remote ? await GMData.signIn(user, password) : DEMO_LOGINS[user] === password; }
   catch { ok = false; }
   if (ok) {
-    sessionStorage.setItem("obraflow-authenticated", "true");
-    if (form.get("remember")) localStorage.setItem("obraflow-remember-login", "true");
-    else localStorage.removeItem("obraflow-remember-login");
+    sessionStorage.setItem("gmsync-authenticated", "true");
+    if (form.get("remember")) localStorage.setItem("gmsync-remember-login", "true");
+    else localStorage.removeItem("gmsync-remember-login");
     document.querySelector("#loginError").hidden = true;
     showApplication();
-    toast(`${greeting()}. Bem-vindo ao ObraFlow.`);
+    toast(`${greeting()}. Bem-vindo ao GMSync.`);
   } else {
     document.querySelector("#loginError").hidden = false;
     document.querySelector("#loginPassword").select();
@@ -431,8 +436,8 @@ document.querySelector("#forgotPassword").onclick = () => {
 };
 document.querySelector("#profileBtn").onclick = () => {
   if (confirm("Deseja encerrar sua sessão?")) {
-    sessionStorage.removeItem("obraflow-authenticated");
-    localStorage.removeItem("obraflow-remember-login");
+    sessionStorage.removeItem("gmsync-authenticated");
+    localStorage.removeItem("gmsync-remember-login");
     GMData.signOut();
     showLogin();
   }
@@ -444,7 +449,7 @@ if (GMData.remote) {
   // Com o banco ligado, quem decide é a sessão do Supabase.
   showLogin();
   GMData.hasSession().then(active => { if (active) showApplication(); }).catch(() => {});
-} else if (sessionStorage.getItem("obraflow-authenticated") === "true" || localStorage.getItem("obraflow-remember-login") === "true") {
+} else if (sessionStorage.getItem("gmsync-authenticated") === "true" || localStorage.getItem("gmsync-remember-login") === "true") {
   showApplication();
 } else {
   showLogin();

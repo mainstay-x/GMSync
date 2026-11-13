@@ -1,2 +1,2 @@
-# obraflow
-Software de gestão
+# GMSync
+Software de gestão de obras
