@@ -6,7 +6,7 @@ const number = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximu
 const dateFmt = new Intl.DateTimeFormat("pt-BR");
 
 const NAV = [
-  ["dashboard", "⌂", "Dashboard"], ["obras", "▦", "Obras"], ["cronogramas", "≡", "Cronogramas"],
+  ["dashboard", "⌂", "Dashboard"], ["lancamentos", "✉", "Lançamentos"], ["obras", "▦", "Obras"], ["cronogramas", "≡", "Cronogramas"],
   ["curva", "⌁", "Curva S"], ["diario", "☷", "Diário de Obra"], ["financeiro", "◇", "Financeiro"],
   ["documentos", "▤", "Documentos"], ["relatorios", "▧", "Relatórios"], ["configuracoes", "⚙", "Configurações"]
 ];
@@ -163,7 +163,7 @@ function navigate(to, id) {
   renderNav(); render();
 }
 function renderNav() {
-  const html = NAV.map(([id,icon,label])=>`<button class="nav-item ${route===id||(route==="project"&&id==="obras")?"active":""}" data-route="${id}"><span class="nav-icon">${icon}</span><span class="nav-label">${label}</span></button>`).join("");
+  const html = NAV.map(([id,icon,label])=>`<button class="nav-item ${route===id||(route==="project"&&id==="obras")?"active":""}" data-route="${id}"><span class="nav-icon">${icon}</span><span class="nav-label">${label}</span>${id==="lancamentos"&&GMUI.pendingCount()?`<span class="gm-count">${GMUI.pendingCount()}</span>`:""}</button>`).join("");
   document.querySelector("#mainNav").innerHTML=html;
   document.querySelector("#mobileNav").innerHTML=NAV.slice(0,5).map(([id,icon,label])=>`<button class="nav-item ${route===id||(route==="project"&&id==="obras")?"active":""}" data-route="${id}"><span class="nav-icon">${icon}</span><span class="nav-label">${label.split(" ")[0]}</span></button>`).join("");
   document.querySelectorAll("[data-route]").forEach(b=>b.onclick=()=>navigate(b.dataset.route));
@@ -271,13 +271,12 @@ function financeiro() { projectTab="finance"; route="project"; return projectPag
 function diario() { selectedProjectId="logistico"; projectTab="diary"; route="project"; return projectPage(); }
 function documentos() { projectTab="documents"; route="project"; return projectPage(); }
 function relatorios() { projectTab="report"; route="project"; return projectPage(); }
-function configuracoes() {
-  setPage("Configurações","PREFERÊNCIAS");
+function ambienteView() {
   return `<div class="grid-equal"><div class="panel"><div class="panel-head"><h3>Preferências do ambiente</h3></div><div class="panel-body"><div class="form-grid"><div class="field"><label>Empresa</label><input value="A&M Incorporações"></div><div class="field"><label>Data de análise</label><input value="23/07/2026" disabled></div><div class="field"><label>Moeda</label><select><option>Real brasileiro (BRL)</option></select></div><div class="field"><label>Fuso horário</label><select><option>América/São Paulo</option></select></div></div><div class="form-actions"><button class="primary-btn" data-action="save-settings">Salvar preferências</button></div></div></div><div class="panel"><div class="panel-head"><h3>Dados de demonstração</h3></div><div class="panel-body"><p>Restaure obras, lançamentos e diários para o estado original do protótipo.</p><button class="secondary-btn danger-btn" data-action="reset-demo">Restaurar dados de demonstração</button></div></div></div>`;
 }
 function render() {
   if(chart) { chart.destroy(); chart=null; }
-  const views={dashboard,obras,project:projectPage,cronogramas,curva,diario,financeiro,documentos,relatorios,configuracoes};
+  const views={dashboard,lancamentos:GMUI.inbox,obras,project:projectPage,cronogramas,curva,diario,financeiro,documentos,relatorios,configuracoes:GMUI.settings};
   document.querySelector("#appContent").innerHTML=(views[route]||dashboard)();
   bind();
   requestAnimationFrame(renderChartIfNeeded);
@@ -323,7 +322,7 @@ function actions(action) {
   if(action==="upload-doc") return toast("Documento simulado adicionado à biblioteca.");
 }
 function openModal(title,body) { document.querySelector("#modalTitle").textContent=title;document.querySelector("#modalBody").innerHTML=body;document.querySelector("#modalBackdrop").hidden=false;document.querySelector("#modal").hidden=false; }
-function closeModal(){document.querySelector("#modalBackdrop").hidden=true;document.querySelector("#modal").hidden=true;}
+function closeModal(){document.querySelector("#modalBackdrop").hidden=true;document.querySelector("#modal").hidden=true;document.querySelector("#modal").classList.remove("gm-modal-wide");GMUI.clear();}
 function projectModal(p) {
   openModal(p?"Editar obra":"Nova obra",`<form id="projectForm"><div class="form-grid">
   ${field("name","Nome da obra",p?.name||"",true,"full")}${field("client","Cliente",p?.client||"",true)}${field("manager","Responsável",p?.manager||"",true)}
@@ -400,18 +399,23 @@ function showLogin() {
   document.querySelector("#loginError").hidden = true;
   document.querySelector("#loginUser").focus();
 }
-document.querySelector("#loginForm").onsubmit = e => {
+// Com o Supabase ligado (config.js), o login é o de verdade. Sem ele, vale o acesso de demonstração.
+const DEMO_LOGINS = { gerson: "1234", gmarcola: "gmarcola" };
+document.querySelector("#loginForm").onsubmit = async e => {
   e.preventDefault();
   const form = new FormData(e.target);
   const user = String(form.get("user")).trim().toLowerCase();
   const password = String(form.get("password"));
-  if (user === "gerson" && password === "1234") {
+  let ok;
+  try { ok = GMData.remote ? await GMData.signIn(user, password) : DEMO_LOGINS[user] === password; }
+  catch { ok = false; }
+  if (ok) {
     sessionStorage.setItem("obraflow-authenticated", "true");
     if (form.get("remember")) localStorage.setItem("obraflow-remember-login", "true");
     else localStorage.removeItem("obraflow-remember-login");
     document.querySelector("#loginError").hidden = true;
     showApplication();
-    toast(`${greeting()}, Gerson. Bem-vindo ao ObraFlow.`);
+    toast(`${greeting()}. Bem-vindo ao ObraFlow.`);
   } else {
     document.querySelector("#loginError").hidden = false;
     document.querySelector("#loginPassword").select();
@@ -423,21 +427,28 @@ document.querySelector("#passwordToggle").onclick = () => {
   document.querySelector("#passwordToggle").setAttribute("aria-label", input.type === "password" ? "Mostrar senha" : "Ocultar senha");
 };
 document.querySelector("#forgotPassword").onclick = () => {
-  toast("Neste protótipo, use gerson e a senha 1234.");
+  toast(GMData.remote ? "Peça ao administrador para redefinir a sua senha." : "Neste protótipo, use gerson e a senha 1234.");
 };
 document.querySelector("#profileBtn").onclick = () => {
   if (confirm("Deseja encerrar sua sessão?")) {
     sessionStorage.removeItem("obraflow-authenticated");
     localStorage.removeItem("obraflow-remember-login");
+    GMData.signOut();
     showLogin();
   }
 };
 
 renderNav();
 render();
-if (sessionStorage.getItem("obraflow-authenticated") === "true" || localStorage.getItem("obraflow-remember-login") === "true") {
+if (GMData.remote) {
+  // Com o banco ligado, quem decide é a sessão do Supabase.
+  showLogin();
+  GMData.hasSession().then(active => { if (active) showApplication(); }).catch(() => {});
+} else if (sessionStorage.getItem("obraflow-authenticated") === "true" || localStorage.getItem("obraflow-remember-login") === "true") {
   showApplication();
 } else {
   showLogin();
 }
+document.querySelector("#syncMode").textContent = GMData.remote ? "Banco de dados conectado" : "Modo demonstração";
+document.querySelector("#demoAccess").hidden = GMData.remote;
 

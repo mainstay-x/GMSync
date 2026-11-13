@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="brand.css">
+  <link rel="stylesheet" href="lancamentos.css">
 </head>
 <body>
   <section class="login-screen" id="loginScreen">
@@ -52,7 +53,7 @@
         </div>
         <label class="remember"><input type="checkbox" name="remember"> Manter conectado neste dispositivo</label>
         <button class="login-submit" type="submit">Entrar no ObraFlow <span>→</span></button>
-        <div class="demo-access"><strong>Acesso de demonstração</strong><span>Usuário: <b>gerson</b> · Senha: <b>1234</b></span></div>
+        <div class="demo-access" id="demoAccess"><strong>Acesso de demonstração</strong><span>Usuário: <b>gerson</b> · Senha: <b>1234</b></span></div>
       </form>
     </div>
   </section>
@@ -67,7 +68,7 @@
       <nav class="nav" id="mainNav" aria-label="Navegação principal"></nav>
       <div class="sidebar-foot">
         <div class="sync-dot"></div>
-        <div><strong>Dados sincronizados</strong><span>Armazenamento local</span></div>
+        <div><strong>Dados sincronizados</strong><span id="syncMode">Armazenamento local</span></div>
       </div>
     </aside>
 
@@ -94,6 +95,9 @@
   </div>
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
   <div class="presentation" id="presentation" hidden></div>
+  <script src="config.js"></script>
+  <script src="data.js"></script>
+  <script src="lancamentos.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

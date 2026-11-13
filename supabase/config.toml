@@ -1,0 +1,11 @@
+# A Meta chama o webhook sem token do Supabase; a função confere a assinatura.
+[functions.gmsync-whatsapp-webhook]
+verify_jwt = false
+
+# A função de envio confere a chave service_role por conta própria.
+[functions.gmsync-whatsapp-send]
+verify_jwt = false
+
+# Reprocessamento: confere a chave service_role por conta própria.
+[functions.gmsync-process]
+verify_jwt = false
